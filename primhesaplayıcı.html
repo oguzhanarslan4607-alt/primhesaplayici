@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prim Hesaplama</title>
+<style>
+body { font-family: Arial, sans-serif; margin:0; padding:0; background:#fff; }
+.container { max-width:500px; margin:auto; padding:16px; display:flex; flex-direction:column; gap:8px; overflow-y:auto; }
+label { font-weight:bold; margin-top:16px; }
+input, select, button { width:100%; padding:6px; margin-top:4px; box-sizing:border-box; }
+input[disabled] { background-color:#f0f0f0; }
+.button-container { display:flex; gap:12px; margin-top:24px; }
+.button-container button { flex:1; color:#fff; font-weight:bold; padding:8px; border:none; cursor:pointer; }
+#btnHesapla { background-color:#4CAF50; }
+#btnTemizle { background-color:#F44336; }
+#sonucLayout { display:none; margin-top:24px; background:#EEEEEE; padding:16px; white-space:pre-line; }
+#byOguz { position:fixed; bottom:10px; right:10px; color:#FF5722; font-weight:bold; animation: float 1s infinite alternate; opacity:0.5; }
+@keyframes float { 0% { transform:translateY(0); opacity:0.5; } 100% { transform:translateY(-20px); opacity:1; } }
+.flex-row { display:flex; align-items:center; gap:8px; }
+.flex-row select { flex:1; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <label>ÜRÜN SEÇİN</label>
+  <select id="urun"></select>
+
+  <label>SATIŞ ŞEKLİ SEÇİN</label>
+  <select id="satis"></select>
+
+  <div class="flex-row">
+    <input type="checkbox" id="checkKrediKart">
+    <label for="checkKrediKart" style="margin:0;">Kredi Kartı Seçeneği</label>
+    <select id="krediKart"></select>
+  </div>
+
+  <label>TOPLAM SATIŞ TUTARI (₺)</label>
+  <input type="number" id="toplamSatis" disabled>
+
+  <label>NAKİT TUTARI (₺)</label>
+  <input type="number" id="nakit" placeholder="Nakit tutarını giriniz">
+
+  <label>SENET TUTARI (₺)</label>
+  <input type="number" id="senet" disabled>
+
+  <label>HESABA DÜŞEN (₺)</label>
+  <input type="number" id="hesabaDusen" placeholder="Kredi kartı için hesaba düşen tutarı girin" disabled>
+
+  <div class="button-container">
+    <button id="btnHesapla">HESAPLA</button>
+    <button id="btnTemizle">TEMİZLE</button>
+  </div>
+
+  <div id="sonucLayout">
+    <div id="tvSonuc"></div>
+  </div>
+</div>
+
+<div id="byOguz">by_Oğuz</div>
+
+<script>
+const satisMap = {
+  "TR": { "1+1":63000, "1+5":70000, "1+8":75000, "1+12":80000, "1+15":84000, "1+18":90000, "1+21":96000, "1+24":102000, "K.KARTI TEK ÇEKİM":60000, "K.KARTI 2 TAKSİT":63000, "K.KARTI 5 TAKSİT":65000, "K.KARTI 9 TAKSİT":70000 },
+  "RO - Unique": { "1+1":24000,"1+4":26000,"1+7":28000,"1+12":30000,"1+15":32000,"1+18":34000,"1+21":35000,"K.KARTI TEK ÇEKİM":23000,"K.KARTI 2 TAKSİT":24000,"K.KARTI 5 TAKSİT":25000,"K.KARTI 9 TAKSİT":28000 },
+  "RO - Unique M5": { "1+1":24500,"1+4":27000,"1+7":29000,"1+12":31000,"1+15":33000,"1+18":35000,"1+21":36000,"K.KARTI TEK ÇEKİM":23500,"K.KARTI 2 TAKSİT":24500,"K.KARTI 5 TAKSİT":26000,"K.KARTI 9 TAKSİT":29000 },
+  "RO - Platinum": { "1+1":15000,"1+4":17000,"1+7":18000,"1+12":20000,"1+15":21000,"K.KARTI TEK ÇEKİM":15000,"K.KARTI 2 TAKSİT":15500,"K.KARTI 9 TAKSİT":18500 },
+  "RO - Silver": { "1+1":6200,"1+4":6700,"1+7":7200,"1+12":7700,"1+15":8200,"K.KARTI TEK ÇEKİM":5900,"K.KARTI 2 TAKSİT":6200,"K.KARTI 9 TAKSİT":7000 },
+  "Klima-12": { "1+4":31000,"1+9":36000,"1+12":37500,"K.KARTI TEK ÇEKİM":27900,"K.KARTI 9 TAKSİT":31000 },
+  "Klima-18": { "1+4":43500,"1+9":50500,"1+12":55000,"K.KARTI TEK ÇEKİM":38500,"K.KARTI 9 TAKSİT":43500 }
+};
+
+const urunSelect = document.getElementById("urun");
+const satisSelect = document.getElementById("satis");
+const krediSelect = document.getElementById("krediKart");
+const toplamInput = document.getElementById("toplamSatis");
+const nakitInput = document.getElementById("nakit");
+const senetInput = document.getElementById("senet");
+const checkKredi = document.getElementById("checkKrediKart");
+const hesabaInput = document.getElementById("hesabaDusen");
+const sonucDiv = document.getElementById("sonucLayout");
+const tvSonuc = document.getElementById("tvSonuc");
+
+function populateUrun() {
+  urunSelect.innerHTML = "";
+  Object.keys(satisMap).forEach(u => {
+    const opt = document.createElement("option"); opt.value = u; opt.text = u;
+    urunSelect.add(opt);
+  });
+}
+
+function updateSatis() {
+  const urun = urunSelect.value;
+  satisSelect.innerHTML = "";
+  Object.keys(satisMap[urun]).filter(k=>!k.includes("K.KARTI")).forEach(k=>{
+    const opt = document.createElement("option"); opt.value=k; opt.text=k; satisSelect.add(opt);
+  });
+}
+
+function updateKredi() {
+  const urun = urunSelect.value;
+  krediSelect.innerHTML = "";
+  Object.keys(satisMap[urun]).filter(k=>k.includes("K.KARTI")).forEach(k=>{
+    const opt = document.createElement("option"); opt.value=k; opt.text=k; krediSelect.add(opt);
+  });
+}
+
+function clearFields() {
+  toplamInput.value=""; nakitInput.value=""; senetInput.value=""; hesabaInput.value="";
+  sonucDiv.style.display="none";
+}
+
+urunSelect.addEventListener("change", ()=>{
+  updateSatis(); updateKredi(); clearFields();
+});
+
+satisSelect.addEventListener("change", ()=>{
+  if(!checkKredi.checked){
+    const urun = urunSelect.value;
+    const satis = satisSelect.value;
+    toplamInput.value = satisMap[urun][satis] || 0;
+    const nakit = parseFloat(nakitInput.value) || 0;
+    senetInput.value = Math.max((satisMap[urun][satis] || 0) - nakit,0).toFixed(2);
+  }
+});
+
+krediSelect.addEventListener("change", ()=>{
+  if(checkKredi.checked){
+    const urun = urunSelect.value;
+    const kredi = krediSelect.value;
+    toplamInput.value = satisMap[urun][kredi] || 0;
+    nakitInput.value=0; senetInput.value=0;
+  }
+});
+
+checkKredi.addEventListener("change", ()=>{
+  const checked = checkKredi.checked;
+  satisSelect.disabled=checked;
+  nakitInput.disabled=checked;
+  senetInput.disabled=checked;
+  hesabaInput.disabled=!checked;
+  if(checked){
+    const urun = urunSelect.value;
+    const kredi = krediSelect.value;
+    toplamInput.value = satisMap[urun][kredi] || 0;
+    nakitInput.value=0; senetInput.value=0;
+  } else { updateSatis(); clearFields(); }
+});
+
+nakitInput.addEventListener("input", ()=>{
+  if(!checkKredi.checked){
+    const toplam = parseFloat(toplamInput.value) || 0;
+    const nakit = parseFloat(nakitInput.value) || 0;
+    senetInput.value = Math.max(toplam-nakit,0).toFixed(2);
+  }
+});
+
+document.getElementById("btnHesapla").addEventListener("click", ()=>{
+  let toplam=0, nakit=0, senet=0, nakitOran=0, senetOran=0;
+  const kdvOran=1.20;
+
+  if(checkKredi.checked){
+    const hesaba=parseFloat(hesabaInput.value)||0;
+    const kdvHariç=hesaba/1.20;
+    const prim=kdvHariç*21/100;
+    toplam=hesaba; nakit=0; senet=0; nakitOran=21; senetOran=0;
+    tvSonuc.textContent=`Hesaba Düşen: ₺${hesaba.toFixed(2)}\nKDV Hariç: ₺${kdvHariç.toFixed(2)}\nPrim (%21): ₺${prim.toFixed(2)}`;
+  } else {
+    const urun=urunSelect.value;
+    const satisKey=satisSelect.value;
+    toplam=parseFloat(toplamInput.value)||0;
+    nakit=parseFloat(nakitInput.value)||0;
+    senet=parseFloat(senetInput.value)||0;
+    const nakitKdv = nakit/kdvOran;
+    const senetKdv = senet/kdvOran;
+
+    let satisNum=parseInt(satisKey.split("+")[1])||0;
+    switch(urun){
+      case "TR": [nakitOran,senetOran]=(satisNum>12)?[21,11]:[21,17]; break;
+      case "RO - Unique":
+      case "RO - Unique M5": [nakitOran,senetOran]=(satisNum>7)?[21,11]:[21,17]; break;
+      case "RO - Platinum":
+      case "RO - Silver": [nakitOran,senetOran]=[13,11]; break;
+      case "Klima-12":
+      case "Klima-18": [nakitOran,senetOran]=[11,9]; break;
+      default: [nakitOran,senetOran]=[0,0];
+    }
+
+    const nakitPrim=nakitKdv*nakitOran/100;
+    const senetPrim=senetKdv*senetOran/100;
+    const toplamPrim=nakitPrim+senetPrim;
+
+    tvSonuc.textContent=
+      `🧾 Toplam Satış: ₺${toplam.toFixed(2)}
+💰 Nakit KDV'li Tutar: ₺${nakitKdv.toFixed(2)}
+💳 Senet KDV'li Tutar: ₺${senetKdv.toFixed(2)}
+💸 Nakit Prim (%${nakitOran}): ₺${nakitPrim.toFixed(2)}
+📄 Senet Prim (%${senetOran}): ₺${senetPrim.toFixed(2)}
+🏆 Toplam Prim: ₺${toplamPrim.toFixed(2)}`;
+  }
+  sonucDiv.style.display="block";
+});
+
+document.getElementById("btnTemizle").addEventListener("click", clearFields);
+
+// Initialize
+populateUrun();
+updateSatis();
+updateKredi();
+</script>
+
+</body>
+</html>
