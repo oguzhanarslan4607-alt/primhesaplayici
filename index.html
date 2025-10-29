@@ -17,6 +17,12 @@
   --text:#eee;
   --primary:#2196f3;
 }
+/* Koyu tema bilgi kutusu yazısını görünür yap */
+[data-theme="dark"] .info-box{
+  background:#1a237e; /* koyu mavi arka plan */
+  color:#fff; /* beyaz yazı */
+}
+
 html,body{height:100%;margin:0;font-family:sans-serif;background:var(--bg);color:var(--text);}
 body{display:flex;justify-content:center;padding:16px;align-items:flex-start;}
 .wrap{
@@ -71,6 +77,13 @@ button{
 .hidden{display:none;}
 .info-box{background:#eef; padding:10px;border-radius:6px; font-size:14px;margin-top:10px;}
 .theme-switch{margin-top:10px;text-align:right;}
+.footer-credit{
+  text-align:center;
+  font-weight:700;
+  font-size:14px;
+  margin-top:10px;
+  color: #d32f2f; /* kırmızı renkli */
+}
 </style>
 </head>
 <body data-theme="light">
@@ -153,6 +166,7 @@ button{
   </div>
 
   <div class="by">by_Oğuz</div>
+  <div class="footer-credit">BİR KAHRAMANMARAŞ YAPIMIDIR</div>
 </div>
 
 <script>
@@ -193,9 +207,7 @@ btnLogin.addEventListener('click',()=>{
 
 // --- Tema Seçimi ---
 const themeSelect = document.getElementById('themeSelect');
-themeSelect.addEventListener('change',()=>{
-  document.body.setAttribute('data-theme', themeSelect.value);
-});
+themeSelect.addEventListener('change',()=>{ document.body.setAttribute('data-theme', themeSelect.value); });
 
 // --- Yardım / Bilgi Toggle ---
 const btnInfo = document.getElementById('btnInfo');
@@ -347,37 +359,8 @@ satisEl.addEventListener('change',()=>{toplamEl.value = (satisMap[urunEl.value][
 nakitEl.addEventListener('input',()=>{updateSenet(); renderResultsReset()});
 btnHesapla.addEventListener('click',()=>{if(checkKredi.checked){hesabaEl.disabled=false;krediOpt.disabled=false} hesapla()});
 btnTemizle.addEventListener('click',()=>{urunEl.selectedIndex=0; populateUrunler(); updateSatisOptions(); nakitEl.value=''; senetEl.value=''; hesabaEl.value=''; checkKredi.checked=false; krediOpt.disabled=true; hesabaEl.disabled=true; renderResultsReset();});
-checkKredi.addEventListener('change',()=>{
-  const on=checkKredi.checked;
-  satisEl.disabled=on;
-  nakitEl.disabled=on;
-  senetEl.disabled=on;
-  hesabaEl.disabled=!on;
-  krediOpt.disabled=!on;
-  if(on){
-    const u=urunEl.value;
-    const k=krediOpt.value||"K.KARTI TEK ÇEKİM";
-    const fiyat=(satisMap[u]&&satisMap[u][k])?satisMap[u][k]:0;
-    toplamEl.value=fiyat;
-    nakitEl.value=''; senetEl.value='';
-  } else {
-    const u=urunEl.value;
-    const s=satisEl.value;
-    if(u&&s&&satisMap[u]&&satisMap[u][s]!==undefined){toplamEl.value=satisMap[u][s]}
-    hesabaEl.value='';
-  }
-  renderResultsReset();
-});
-krediOpt.addEventListener('change',()=>{
-  if(checkKredi.checked){
-    const u=urunEl.value;
-    const k=krediOpt.value;
-    const fiyat=(satisMap[u]&&satisMap[u][k])?satisMap[u][k]:0;
-    toplamEl.value=fiyat;
-    nakitEl.value=''; senetEl.value='';
-    renderResultsReset();
-  }
-});
+checkKredi.addEventListener('change',()=>{ const on=checkKredi.checked; satisEl.disabled=on; nakitEl.disabled=on; senetEl.disabled=on; hesabaEl.disabled=!on; krediOpt.disabled=!on; if(on){ const u=urunEl.value; const k=krediOpt.value||"K.KARTI TEK ÇEKİM"; const fiyat=(satisMap[u]&&satisMap[u][k])?satisMap[u][k]:0; toplamEl.value=fiyat; nakitEl.value=''; senetEl.value=''; } else { const u=urunEl.value; const s=satisEl.value; if(u&&s&&satisMap[u]&&satisMap[u][s]!==undefined){toplamEl.value=satisMap[u][s]} hesabaEl.value=''; } renderResultsReset(); });
+krediOpt.addEventListener('change',()=>{ if(checkKredi.checked){ const u=urunEl.value; const k=krediOpt.value; const fiyat=(satisMap[u]&&satisMap[u][k])?satisMap[u][k]:0; toplamEl.value=fiyat; nakitEl.value=''; senetEl.value=''; renderResultsReset(); } });
 
 // --- Init ---
 populateUrunler();
