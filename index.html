@@ -71,6 +71,10 @@ button{
   <input type="text" id="userId" placeholder="Kullanıcı adı">
   <label for="userPass">Şifre</label>
   <input type="password" id="userPass" placeholder="Şifre">
+  <div style="margin-top:8px;">
+    <input type="checkbox" id="rememberMe">
+    <label for="rememberMe" style="font-weight:400;font-size:14px;">Beni hatırla</label>
+  </div>
   <div class="actions">
     <button id="btnLogin" class="btn-calc">GİRİŞ</button>
   </div>
@@ -125,14 +129,34 @@ button{
 </div>
 
 <script>
-// --- Giriş Kontrol ---
+// --- Giriş Kontrol ve Beni Hatırla ---
 const loginWrap = document.getElementById('loginWrap');
 const primWrap = document.getElementById('primWrap');
 const btnLogin = document.getElementById('btnLogin');
+
+window.addEventListener('DOMContentLoaded',()=>{
+  const savedId = localStorage.getItem('savedUser');
+  const savedPass = localStorage.getItem('savedPass');
+  if(savedId && savedPass){
+    document.getElementById('userId').value = savedId;
+    document.getElementById('userPass').value = savedPass;
+    document.getElementById('rememberMe').checked = true;
+  }
+});
+
 btnLogin.addEventListener('click',()=>{
   const id = document.getElementById('userId').value.trim();
   const pass = document.getElementById('userPass').value.trim();
+  const remember = document.getElementById('rememberMe').checked;
+
   if(id==='ihlas' && pass==='1234'){
+    if(remember){
+      localStorage.setItem('savedUser', id);
+      localStorage.setItem('savedPass', pass);
+    } else {
+      localStorage.removeItem('savedUser');
+      localStorage.removeItem('savedPass');
+    }
     loginWrap.classList.add('hidden');
     primWrap.classList.remove('hidden');
   } else {
@@ -140,7 +164,7 @@ btnLogin.addEventListener('click',()=>{
   }
 });
 
-// --- Orijinal JS Kodu ---
+// --- Orijinal Prim Hesaplama JS Kodu ---
 const satisMap = {
   "TR":{"1+1":63000,"1+5":70000,"1+8":75000,"1+12":80000,"1+15":84000,"1+18":90000,"1+21":96000,"1+24":102000,"K.KARTI TEK ÇEKİM":60000,"K.KARTI 2 TAKSİT":63000,"K.KARTI 5 TAKSİT":65000,"K.KARTI 9 TAKSİT":70000},
   "RO - Unique":{"1+1":24000,"1+4":26000,"1+7":28000,"1+12":30000,"1+15":32000,"1+18":34000,"1+21":35000,"K.KARTI TEK ÇEKİM":23000,"K.KARTI 2 TAKSİT":24000,"K.KARTI 5 TAKSİT":25000,"K.KARTI 9 TAKSİT":28000},
@@ -291,15 +315,12 @@ checkKredi.addEventListener('change',()=>{
     const k=krediOpt.value||kreditFallbacks()[0];
     const fiyat=(satisMap[u]&&satisMap[u][k])?satisMap[u][k]:0;
     toplamEl.value=fiyat;
-    nakitEl.value='0.00';
-    senetEl.value='0.00';
+    nakitEl.value=''; senetEl.value='';
   } else {
     const u=urunEl.value;
     const s=satisEl.value;
     if(u&&s&&satisMap[u]&&satisMap[u][s]!==undefined){toplamEl.value=satisMap[u][s]}
     hesabaEl.value='';
-    nakitEl.value='';
-    senetEl.value='';
   }
   renderResultsReset();
 });
@@ -309,8 +330,7 @@ krediOpt.addEventListener('change',()=>{
     const k=krediOpt.value;
     const fiyat=(satisMap[u]&&satisMap[u][k])?satisMap[u][k]:0;
     toplamEl.value=fiyat;
-    nakitEl.value='0.00';
-    senetEl.value='0.00';
+    nakitEl.value=''; senetEl.value='';
     renderResultsReset();
   }
 });
